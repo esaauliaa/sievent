@@ -8,18 +8,13 @@ use Illuminate\Support\Facades\Auth;
 
 class RuanganController extends Controller
 {
-    /**
-     * Mengecek apakah user boleh tambah, edit, hapus ruangan.
-     */
+    //Mengecek apakah user boleh tambah, edit, hapus ruangan
     private function isAdmin(): bool
     {
         return Auth::check() && Auth::user()->role === 'admin';
     }
 
-    /**
-     * Menampilkan daftar ruangan.
-     * Admin, mahasiswa, dan penyelenggara boleh melihat.
-     */
+    //Menampilkan daftar ruangan
     public function index(Request $request)
     {
         $query = Ruangan::where('is_delete', false);
@@ -49,9 +44,7 @@ class RuanganController extends Controller
         return view('ruangan.index', compact('ruangans'));
     }
 
-    /**
-     * Menampilkan form tambah ruangan.
-     */
+    //Menampilkan form tambah ruangan.
     public function create()
     {
         if (!$this->isAdmin()) {
@@ -61,9 +54,7 @@ class RuanganController extends Controller
         return view('ruangan.create');
     }
 
-    /**
-     * Menyimpan data ruangan baru.
-     */
+    //Menyimpan data ruangan baru.
     public function store(Request $request)
     {
         if (!$this->isAdmin()) {
@@ -106,9 +97,7 @@ class RuanganController extends Controller
             ->with('success', 'Data ruangan berhasil ditambahkan.');
     }
 
-    /**
-     * Menampilkan form edit ruangan.
-     */
+    //Menampilkan form edit ruangan
     public function edit($id_ruangan)
     {
         if (!$this->isAdmin()) {
@@ -122,9 +111,7 @@ class RuanganController extends Controller
         return view('ruangan.edit', compact('ruangan'));
     }
 
-    /**
-     * Menyimpan perubahan data ruangan.
-     */
+    //Menyimpan perubahan data ruangan
     public function update(Request $request, $id_ruangan)
     {
         if (!$this->isAdmin()) {
@@ -170,9 +157,7 @@ class RuanganController extends Controller
             ->with('success', 'Data ruangan berhasil diperbarui.');
     }
 
-    /**
-     * Menghapus data ruangan secara soft delete.
-     */
+    //Menghapus data ruangan secara soft delete
     public function destroy($id_ruangan)
     {
         if (!$this->isAdmin()) {
