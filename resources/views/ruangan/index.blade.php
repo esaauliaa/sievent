@@ -46,7 +46,7 @@
 
         <!-- Card Table -->
         <div class="bg-white rounded-3xl border border-blue-100 shadow-sm overflow-hidden">
-            <div class="px-6 py-5 border-b border-blue-100 flex items-center justify-between">
+            <div class="px-6 py-5 border-b border-blue-100 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
                 <div>
                     <h3 class="text-lg font-extrabold text-[#131D4F]">
                         Daftar Ruangan
@@ -56,6 +56,38 @@
                         Menampilkan seluruh data ruangan yang ada di Universitas Jember.
                     </p>
                 </div>
+
+                <!-- Search dan Filter AJAX -->
+                <div class="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+                    <div class="relative w-full sm:w-72">
+                        <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+
+                        <input
+                            id="searchRuangan"
+                            type="text"
+                            placeholder="Cari ruangan..."
+                            class="w-full h-12 pl-11 pr-4 rounded-2xl border-2 border-blue-100 bg-[#f8fbff] text-sm text-[#131D4F] focus:border-[#0056B3] focus:ring-1 focus:ring-[#0056B3]"
+                        >
+                    </div>
+
+                    <select
+                        id="filterStatus"
+                        class="w-full sm:w-56 h-12 px-4 rounded-2xl border-2 border-blue-100 bg-[#f8fbff] text-sm text-[#131D4F] focus:border-[#0056B3] focus:ring-1 focus:ring-[#0056B3]"
+                    >
+                        <option value="">Semua Status</option>
+                        <option value="tersedia">Tersedia</option>
+                        <option value="tidak_tersedia">Tidak Tersedia</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Loading AJAX -->
+            <div
+                id="loadingAjax"
+                class="hidden px-6 py-3 text-sm text-[#0056B3] font-semibold bg-blue-50 border-b border-blue-100"
+            >
+                <i class="fa-solid fa-spinner fa-spin mr-2"></i>
+                Memuat data ruangan...
             </div>
 
             <div class="overflow-x-auto">
@@ -90,81 +122,60 @@
                         </tr>
                     </thead>
 
-                    <tbody class="divide-y divide-blue-50">
-                        @forelse ($ruangans as $index => $ruangan)
-                            <tr class="hover:bg-blue-50/50 transition">
-                                <td class="px-6 py-4 text-gray-600 whitespace-nowrap">
-                                    {{ $index + 1 }}
-                                </td>
-
-                                <td class="px-6 py-4 font-bold text-[#131D4F] min-w-[260px]">
-                                    {{ $ruangan->nama_ruangan }}
-                                </td>
-
-                                <td class="px-6 py-4 text-gray-600 min-w-[260px]">
-                                    {{ $ruangan->lokasi }}
-                                </td>
-
-                                <td class="px-6 py-4 text-gray-600 whitespace-nowrap">
-                                    {{ $ruangan->kapasitas }} orang
-                                </td>
-
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    @if ($ruangan->status_ruangan === 'tersedia')
-                                        <span class="inline-flex items-center whitespace-nowrap rounded-full bg-green-100 px-4 py-2 text-sm font-semibold text-green-700">
-                                            Tersedia
-                                        </span>
-                                    @else
-                                        <span class="inline-flex items-center whitespace-nowrap rounded-full bg-red-100 px-4 py-2 text-sm font-semibold text-red-700">
-                                            Tidak Tersedia
-                                        </span>
-                                    @endif
-                                </td>
-
-                                @if (Auth::user()->role === 'admin')
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <div class="flex items-center justify-center gap-3">
-                                            <a
-                                                href="{{ route('ruangan.edit', $ruangan->id_ruangan) }}"
-                                                class="w-11 h-11 rounded-xl bg-yellow-400 text-[#131D4F] flex items-center justify-center hover:bg-yellow-500 transition shadow-sm"
-                                                title="Edit Ruangan"
-                                            >
-                                                <i class="fa-solid fa-pen"></i>
-                                            </a>
-
-                                            <form
-                                                method="POST"
-                                                action="{{ route('ruangan.destroy', $ruangan->id_ruangan) }}"
-                                                onsubmit="return confirm('Apakah Anda yakin ingin menghapus ruangan ini?')"
-                                            >
-                                                @csrf
-                                                @method('DELETE')
-
-                                                <button
-                                                    type="submit"
-                                                    class="w-11 h-11 rounded-xl bg-red-600 text-white flex items-center justify-center hover:bg-red-700 transition shadow-sm"
-                                                    title="Hapus Ruangan"
-                                                >
-                                                    <i class="fa-solid fa-trash"></i>
-                                                </button>
-                                            </form>
-                                        </div>
-                                    </td>
-                                @endif
-                            </tr>
-                        @empty
-                            <tr>
-                                <td
-                                    colspan="{{ Auth::user()->role === 'admin' ? 6 : 5 }}"
-                                    class="px-6 py-10 text-center text-gray-500"
-                                >
-                                    Belum ada data ruangan.
-                                </td>
-                            </tr>
-                        @endforelse
+                    <tbody id="ruanganTableBody" class="divide-y divide-blue-50">
+                        @include('ruangan.partials.table-body', ['ruangans' => $ruangans])
                     </tbody>
                 </table>
             </div>
         </div>
     </div>
+
+    <script>
+        const searchRuangan = document.getElementById('searchRuangan');
+        const filterStatus = document.getElementById('filterStatus');
+        const ruanganTableBody = document.getElementById('ruanganTableBody');
+        const loadingAjax = document.getElementById('loadingAjax');
+
+        let searchTimer = null;
+
+        function fetchRuangan() {
+            const search = searchRuangan.value;
+            const status = filterStatus.value;
+
+            const url = new URL("{{ route('ruangan.index') }}");
+            url.searchParams.append('search', search);
+            url.searchParams.append('status', status);
+
+            loadingAjax.classList.remove('hidden');
+
+            fetch(url, {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.text())
+            .then(html => {
+                ruanganTableBody.innerHTML = html;
+            })
+            .catch(error => {
+                console.error('Gagal mengambil data ruangan:', error);
+            })
+            .finally(() => {
+                loadingAjax.classList.add('hidden');
+            });
+        }
+
+        searchRuangan.addEventListener('keyup', function () {
+            clearTimeout(searchTimer);
+
+            searchTimer = setTimeout(function () {
+                fetchRuangan();
+            }, 400);
+        });
+
+        filterStatus.addEventListener('change', function () {
+            fetchRuangan();
+        });
+    </script>
 @endsection

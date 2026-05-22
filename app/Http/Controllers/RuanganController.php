@@ -10,7 +10,6 @@ class RuanganController extends Controller
 {
     /**
      * Mengecek apakah user boleh tambah, edit, hapus ruangan.
-     * Hanya admin yang boleh.
      */
     private function isAdmin(): bool
     {
@@ -21,18 +20,37 @@ class RuanganController extends Controller
      * Menampilkan daftar ruangan.
      * Admin, mahasiswa, dan penyelenggara boleh melihat.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $ruangans = Ruangan::where('is_delete', false)
+        $query = Ruangan::where('is_delete', false);
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+
+            $query->where(function ($q) use ($search) {
+                $q->where('nama_ruangan', 'like', '%' . $search . '%')
+                    ->orWhere('lokasi', 'like', '%' . $search . '%')
+                    ->orWhere('kapasitas', 'like', '%' . $search . '%');
+            });
+        }
+
+        if ($request->filled('status')) {
+            $query->where('status_ruangan', $request->status);
+        }
+
+        $ruangans = $query
             ->orderBy('id_ruangan', 'desc')
             ->get();
+
+        if ($request->ajax()) {
+            return view('ruangan.partials.table-body', compact('ruangans'))->render();
+        }
 
         return view('ruangan.index', compact('ruangans'));
     }
 
     /**
      * Menampilkan form tambah ruangan.
-     * Hanya admin.
      */
     public function create()
     {
@@ -45,7 +63,6 @@ class RuanganController extends Controller
 
     /**
      * Menyimpan data ruangan baru.
-     * Hanya admin.
      */
     public function store(Request $request)
     {
@@ -91,7 +108,6 @@ class RuanganController extends Controller
 
     /**
      * Menampilkan form edit ruangan.
-     * Hanya admin.
      */
     public function edit($id_ruangan)
     {
@@ -108,7 +124,6 @@ class RuanganController extends Controller
 
     /**
      * Menyimpan perubahan data ruangan.
-     * Hanya admin.
      */
     public function update(Request $request, $id_ruangan)
     {
@@ -156,9 +171,7 @@ class RuanganController extends Controller
     }
 
     /**
-     * Menghapus data ruangan.
-     * Data tidak benar-benar dihapus, hanya is_delete menjadi true.
-     * Hanya admin.
+     * Menghapus data ruangan secara soft delete.
      */
     public function destroy($id_ruangan)
     {
