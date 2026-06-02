@@ -5,7 +5,6 @@
 @section('page-title', 'Dashboard Penyelenggara')
 
 @section('content')
-    <!-- Welcome Section -->
     <div class="mb-8">
         <div class="bg-gradient-to-r from-[#0056B3] to-[#131D4F] rounded-3xl p-8 text-white shadow-lg relative overflow-hidden">
             <div class="absolute right-0 top-0 w-64 h-64 bg-white/10 rounded-full translate-x-20 -translate-y-20"></div>
@@ -14,10 +13,10 @@
             <div class="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
                 <div>
                     <h2 class="text-3xl font-extrabold mb-3">
-                        Halo, {{ Auth::user()->nama ?? 'Penyelenggara' }} 👋
+                        Halo, {{ Auth::user()->nama ?? 'Penyelenggara' }} 
                     </h2>
 
-                    <p class="text-white/85 max-w-2xl leading-relaxed">
+                    <p class="text-white/85 max-w-2xl leading-relaxed text-sm">
                         Selamat datang di dashboard penyelenggara SiEvent UNEJ.
                         Kelola pengajuan event, export data peserta dan presensi, serta cek jadwal event Anda dengan mudah.
                     </p>
@@ -26,11 +25,10 @@
         </div>
     </div>
 
-    <!-- Statistik Penyelenggara -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         <x-penyelenggara-stat-card
             title="Event Saya"
-            value="6"
+            value="{{ $totalEventDibuat }}"
             subtitle="Total event yang dibuat"
             icon="fa-solid fa-calendar-days"
             color="#0056B3"
@@ -38,16 +36,14 @@
 
         <x-penyelenggara-stat-card
             title="Menunggu Konfirmasi"
-            value="2"
+            value="{{ $eventPendingCount }}"
             subtitle="Event belum disetujui admin"
             icon="fa-solid fa-clock"
             color="#131D4F"
         />
     </div>
 
-    <!-- Konten Utama -->
     <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        <!-- Event Terbaru yang Dibuat -->
         <div class="xl:col-span-2 bg-white rounded-3xl border border-blue-100 shadow-sm overflow-hidden">
             <div class="px-6 py-5 border-b border-blue-100 flex items-center justify-between">
                 <div>
@@ -60,7 +56,7 @@
                     </p>
                 </div>
 
-                <a href="#" class="text-sm font-bold text-[#0056B3] hover:underline">
+                <a href="{{ route('event.index') }}" class="text-sm font-bold text-[#0056B3] hover:underline">
                     Lihat Semua
                 </a>
             </div>
@@ -73,82 +69,55 @@
                             <th class="px-6 py-4 text-sm font-extrabold">Tanggal</th>
                             <th class="px-6 py-4 text-sm font-extrabold">Ruangan</th>
                             <th class="px-6 py-4 text-sm font-extrabold">Status</th>
-                            <th class="px-6 py-4 text-sm font-extrabold">Aksi</th>
+                            <th class="px-6 py-4 text-sm font-extrabold text-center">Aksi</th>
                         </tr>
                     </thead>
 
                     <tbody class="divide-y divide-blue-50">
-                        <tr class="hover:bg-blue-50/50 transition">
-                            <td class="px-6 py-4 font-semibold text-[#1b3028]">
-                                Seminar Teknologi Kampus
-                            </td>
-                            <td class="px-6 py-4 text-gray-600">
-                                20 Mei 2026
-                            </td>
-                            <td class="px-6 py-4 text-gray-600">
-                                Aula Fakultas Ilmu Komputer
-                            </td>
-                            <td class="px-6 py-4">
-                                <span class="px-3 py-1 rounded-full text-xs font-bold bg-yellow-100 text-yellow-700">
-                                    Pending
-                                </span>
-                            </td>
-                            <td class="px-6 py-4">
-                                <button class="px-4 py-2 rounded-xl bg-[#0056B3] text-white text-sm font-bold hover:bg-[#131D4F] transition">
-                                    Detail
-                                </button>
-                            </td>
-                        </tr>
-
-                        <tr class="hover:bg-blue-50/50 transition">
-                            <td class="px-6 py-4 font-semibold text-[#1b3028]">
-                                Workshop UI/UX Design
-                            </td>
-                            <td class="px-6 py-4 text-gray-600">
-                                24 Mei 2026
-                            </td>
-                            <td class="px-6 py-4 text-gray-600">
-                                Gedung Soetardjo UNEJ
-                            </td>
-                            <td class="px-6 py-4">
-                                <span class="px-3 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700">
-                                    Approved
-                                </span>
-                            </td>
-                            <td class="px-6 py-4">
-                                <button class="px-4 py-2 rounded-xl bg-[#0056B3] text-white text-sm font-bold hover:bg-[#131D4F] transition">
-                                    Detail
-                                </button>
-                            </td>
-                        </tr>
-
-                        <tr class="hover:bg-blue-50/50 transition">
-                            <td class="px-6 py-4 font-semibold text-[#1b3028]">
-                                Pelatihan Public Speaking
-                            </td>
-                            <td class="px-6 py-4 text-gray-600">
-                                28 Mei 2026
-                            </td>
-                            <td class="px-6 py-4 text-gray-600">
-                                Aula Utama UNEJ
-                            </td>
-                            <td class="px-6 py-4">
-                                <span class="px-3 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700">
-                                    Rejected
-                                </span>
-                            </td>
-                            <td class="px-6 py-4">
-                                <button class="px-4 py-2 rounded-xl bg-[#0056B3] text-white text-sm font-bold hover:bg-[#131D4F] transition">
-                                    Detail
-                                </button>
-                            </td>
-                        </tr>
+                        @forelse($eventTerbaru as $item)
+                            <tr class="hover:bg-blue-50/50 transition">
+                                <td class="px-6 py-4 font-semibold text-[#131D4F]">
+                                    {{ $item->nama_event }}
+                                </td>
+                                <td class="px-6 py-4 text-gray-600">
+                                    {{ \Carbon\Carbon::parse($item->tanggal_pelaksanaan)->translatedFormat('d M Y') }}
+                                </td>
+                                <td class="px-6 py-4 text-gray-600">
+                                    ID-{{ $item->id_ruangan }}
+                                </td>
+                                <td class="px-6 py-4">
+                                    @if($item->status === 'disetujui' || $item->status === 'approved')
+                                        <span class="px-3 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700">
+                                            Approved
+                                        </span>
+                                    @elseif($item->status === 'pending')
+                                        <span class="px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-700">
+                                            Pending
+                                        </span>
+                                    @else
+                                        <span class="px-3 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700">
+                                            Rejected
+                                        </span>
+                                    @endif
+                                </td>
+                                <td class="px-6 py-4 text-center">
+                                    <a href="{{ route('event.show', $item->id_event ?? $item->id) }}" class="px-4 py-2 rounded-xl bg-[#0056B3] text-white text-sm font-bold hover:bg-[#131D4F] transition shadow-sm inline-block">
+                                        Detail
+                                    </a>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="5" class="px-6 py-10 text-center text-gray-400 italic font-medium">
+                                    Belum ada data riwayat pengajuan kegiatan saat ini.
+                                </td>
+                            </tr>
+                        @endforelse
                     </tbody>
                 </table>
             </div>
         </div>
 
-        <!-- Jadwal Event Saya -->
         <div class="bg-white rounded-3xl border border-blue-100 shadow-sm overflow-hidden">
             <div class="px-6 py-5 border-b border-blue-100">
                 <h3 class="text-lg font-extrabold text-[#131D4F]">
@@ -161,55 +130,39 @@
             </div>
 
             <div class="p-6 space-y-4">
-                <div class="p-4 rounded-2xl bg-[#e1effe] border border-blue-100">
-                    <div class="flex items-start gap-4">
-                        <div class="w-12 h-12 rounded-xl bg-[#0056B3] text-white flex items-center justify-center">
-                            <i class="fa-solid fa-calendar-check"></i>
+                @forelse($jadwalEventSaya as $jadwal)
+                    <div class="p-4 rounded-2xl bg-[#e1effe] border border-blue-100 hover:shadow-sm transition flex gap-4 items-center">
+                        
+                        <div class="w-14 h-16 bg-gray-200 rounded-xl overflow-hidden shadow-inner flex-shrink-0 flex items-center justify-center border border-blue-100">
+                            @if(!empty($jadwal->poster))
+                                <img src="{{ asset('storage/' . $jadwal->poster) }}" alt="Poster" class="w-full h-full object-cover">
+                            @else
+                                <i class="fa-solid fa-image text-blue-300 text-lg"></i>
+                            @endif
                         </div>
 
-                        <div>
-                            <p class="font-bold text-[#131D4F]">
-                                Seminar Teknologi Kampus
+                        <div class="min-w-0 flex-1">
+                            <p class="font-bold text-[#131D4F] text-sm truncate">
+                                {{ $jadwal->nama_event }}
                             </p>
 
-                            <p class="text-sm text-gray-600 mt-1">
-                                Aula Fakultas Ilmu Komputer
+                            <p class="text-xs text-gray-600 mt-0.5 flex items-center gap-1">
+                                <i class="fa-solid fa-building text-gray-400 text-[10px]"></i>
+                                ID Ruangan: {{ $jadwal->id_ruangan }}
                             </p>
 
-                            <p class="text-xs text-[#0056B3] font-bold mt-2">
-                                20 Mei 2026 • 09.00 WIB
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="p-4 rounded-2xl bg-[#e1effe] border border-blue-100">
-                    <div class="flex items-start gap-4">
-                        <div class="w-12 h-12 rounded-xl bg-[#131D4F] text-white flex items-center justify-center">
-                            <i class="fa-solid fa-users"></i>
-                        </div>
-
-                        <div>
-                            <p class="font-bold text-[#131D4F]">
-                                Workshop UI/UX Design
-                            </p>
-
-                            <p class="text-sm text-gray-600 mt-1">
-                                Gedung Soetardjo UNEJ
-                            </p>
-
-                            <p class="text-xs text-[#0056B3] font-bold mt-2">
-                                24 Mei 2026 • 13.00 WIB
+                            <p class="text-[10px] text-[#0056B3] font-extrabold mt-1.5 flex items-center gap-1">
+                                <i class="fa-solid fa-calendar-day"></i>
+                                {{ \Carbon\Carbon::parse($jadwal->tanggal_pelaksanaan)->translatedFormat('d M Y') }} • {{ substr($jadwal->waktu_mulai, 0, 5) }} WIB
                             </p>
                         </div>
                     </div>
-                </div>
-
-                <div class="p-4 rounded-2xl bg-[#f8fbff] border border-dashed border-blue-200 text-center">
-                    <p class="text-sm text-gray-500">
-                        Jadwal event yang Anda buat akan tampil di bagian ini.
-                    </p>
-                </div>
+                @empty
+                    <div class="p-6 text-center text-gray-400 italic font-medium bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+                        <i class="fa-solid fa-calendar-xmark block text-2xl mb-2 text-gray-300"></i>
+                        Belum ada jadwal kegiatan aktif yang disetujui dalam waktu dekat.
+                    </div>
+                @endforelse
             </div>
         </div>
     </div>

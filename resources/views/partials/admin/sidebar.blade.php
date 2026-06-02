@@ -65,7 +65,14 @@
         </a>
 
         <!-- Event -->
-        <a href="#"
+        <a href="{{ route('event.index') }}"
+            class="flex items-center gap-3 px-4 py-3 rounded-2xl font-bold transition
+            {{ request()->routeIs('event.*')
+                ? 'bg-[#e1effe]/25 text-white shadow-md border border-white/20 backdrop-blur'
+                : 'text-white/90 hover:bg-white/15' }}">
+            <i class="fa-solid fa-calendar-days w-5 text-sm"></i>
+            <span>Event</span>
+        </a>
         class="flex items-center gap-3 px-4 py-3 rounded-2xl font-semibold text-white/90 hover:bg-white/15 transition">
             <i class="fa-solid fa-calendar-days w-5 text-sm"></i>
             <span>Event</span>

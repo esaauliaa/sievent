@@ -65,7 +65,7 @@
         </a>
 
         <!-- Event -->
-        <a href="#"
+        <a href="{{ route('event.index') }}"
         class="flex items-center gap-3 px-4 py-3 rounded-2xl font-semibold text-white/90 hover:bg-white/15 transition">
             <i class="fa-solid fa-calendar-days w-5 text-sm"></i>
             <span>Event</span>
