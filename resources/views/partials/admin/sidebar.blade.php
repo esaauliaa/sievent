@@ -2,7 +2,6 @@
     id="adminSidebar"
     class="fixed left-0 top-0 h-screen w-[245px] bg-[#0056B3] text-white flex flex-col shadow-2xl z-40 transform -translate-x-full transition-transform duration-300"
 >
-    <!-- Logo dan Close -->
     <div class="h-[120px] px-5 flex items-center justify-between border-b border-white/10">
         <div class="flex items-center gap-3">
             <div class="w-12 h-12 rounded-2xl bg-white flex items-center justify-center shadow-md">
@@ -32,9 +31,7 @@
         </button>
     </div>
 
-    <!-- Menu -->
     <nav class="flex-1 px-4 py-6 space-y-2">
-        <!-- Dashboard -->
         <a href="{{ route('admin.dashboard') }}"
         class="flex items-center gap-3 px-4 py-3 rounded-2xl font-bold transition
         {{ request()->routeIs('admin.dashboard')
@@ -44,7 +41,6 @@
             <span>Dashboard</span>
         </a>
 
-        <!-- Profil -->
         <a href="{{ route('profile.edit') }}"
             class="flex items-center gap-3 px-4 py-3 rounded-2xl font-bold transition
             {{ request()->routeIs('profile.edit')
@@ -54,7 +50,6 @@
             <span>Profil</span>
         </a>
 
-        <!-- Ruangan -->
         <a href="{{ route('ruangan.index') }}"
             class="flex items-center gap-3 px-4 py-3 rounded-2xl font-bold transition
             {{ request()->routeIs('ruangan.*')
@@ -64,7 +59,6 @@
             <span>Ruangan</span>
         </a>
 
-        <!-- Event -->
         <a href="{{ route('event.index') }}"
             class="flex items-center gap-3 px-4 py-3 rounded-2xl font-bold transition
             {{ request()->routeIs('event.*')
@@ -73,13 +67,8 @@
             <i class="fa-solid fa-calendar-days w-5 text-sm"></i>
             <span>Event</span>
         </a>
-        class="flex items-center gap-3 px-4 py-3 rounded-2xl font-semibold text-white/90 hover:bg-white/15 transition">
-            <i class="fa-solid fa-calendar-days w-5 text-sm"></i>
-            <span>Event</span>
-        </a>
     </nav>
 
-    <!-- Logout -->
     <div class="p-4 border-t border-white/10">
         <form method="POST" action="{{ route('logout') }}">
             @csrf

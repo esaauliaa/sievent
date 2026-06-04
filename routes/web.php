@@ -9,11 +9,12 @@ use App\Models\Event;
 use Illuminate\Support\Facades\Route;
 use Carbon\Carbon;
 
+// Pengalihan halaman utama ke login
 Route::get('/', function () {
     return redirect()->route('login');
 });
 
-// Redirect dashboard berdasarkan role user
+// Penengah Dashboard Utama (Membaca Role setelah Login)
 Route::get('/dashboard', function () {
     $role = auth()->user()->role;
 
@@ -30,7 +31,9 @@ Route::get('/dashboard', function () {
     return redirect('/');
 })->middleware(['auth'])->name('dashboard');
 
-// Dashboard Admin
+// ==========================================
+// DASHBOARD ADMIN
+// ==========================================
 Route::get('/admin/dashboard', function () {
     $totalRuangan = Ruangan::where('is_delete', false)->count();
     $ruanganTersedia = Ruangan::where('is_delete', false)->where('status_ruangan', 'tersedia')->count();
@@ -67,7 +70,9 @@ Route::get('/admin/dashboard', function () {
     ));
 })->middleware(['auth'])->name('admin.dashboard');
 
-// Dashboard Penyelenggara
+// ==========================================
+// DASHBOARD PENYELENGGARA
+// ==========================================
 Route::get('/penyelenggara/dashboard', function () {
     $userId = auth()->id();
 
@@ -102,28 +107,26 @@ Route::get('/penyelenggara/dashboard', function () {
     ));
 })->middleware(['auth'])->name('penyelenggara.dashboard');
 
-// Dashboard Mahasiswa
-Route::get('/mahasiswa/dashboard', function () {
-    return view('mahasiswa.dashboard');
-})->middleware(['auth'])->name('mahasiswa.dashboard');
+// ==========================================
+// DASHBOARD MAHASISWA (SUDAH DISINKRONKAN)
+// ==========================================
+Route::get('/mahasiswa/dashboard', [EventController::class, 'dashboardMahasiswa'])
+    ->middleware(['auth'])
+    ->name('mahasiswa.dashboard');
 
-Route::post('/admin/event/{id}/konfirmasi', function ($id) {
-    $event = \App\Models\Event::findOrFail($id);
-    $event->update([
-        'status' => 'disetujui'
-    ]);
-    return redirect()->back()->with('success', 'Event berhasil dikonfirmasi!');
-})->name('event.konfirmasi');
-
-// Route Group Terproteksi Login
+// ==========================================
+// PROTECTED ROUTES (GRUP MITRA AUTH)
+// ==========================================
 Route::middleware('auth')->group(function () {
     
-    // 1. Modul Profile
+    Route::get('/get-ruangan-by-tanggal', [EventController::class, 'getRuanganByTanggal'])->name('event.getRuanganByTanggal');
+
+    // Profile Management
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-    // 2. Modul Ruangan
+    // Ruangan Management
     Route::get('/ruangan', [RuanganController::class, 'index'])->name('ruangan.index');
     Route::get('/ruangan/create', [RuanganController::class, 'create'])->name('ruangan.create');
     Route::post('/ruangan', [RuanganController::class, 'store'])->name('ruangan.store');
@@ -131,35 +134,19 @@ Route::middleware('auth')->group(function () {
     Route::put('/ruangan/{id_ruangan}', [RuanganController::class, 'update'])->name('ruangan.update');
     Route::delete('/ruangan/{id_ruangan}', [RuanganController::class, 'destroy'])->name('ruangan.destroy');
 
-    // 3. Modul Event (Bebas Bentrokan Url)
+    // Event Management
     Route::get('/event', [EventController::class, 'index'])->name('event.index');
-
-    Route::group(['middleware' => function ($request, $next) {
-        if (auth()->check() && auth()->user()->role === 'admin') {
-            return redirect()->route('admin.dashboard')->with('error', 'Admin tidak memiliki hak akses untuk membuat/mengubah data event.');
-        }
-        return $next($request);
-    }], function () {
-        Route::get('/event/create', [EventController::class, 'create'])->name('event.create');
-        Route::post('/event', [EventController::class, 'store'])->name('event.store'); 
-        Route::get('/event/{id_event}/edit', [EventController::class, 'edit'])->name('event.edit');
-        Route::put('/event/{id_event}', [EventController::class, 'update'])->name('event.update');
-        Route::delete('/event/{id_event}', [EventController::class, 'destroy'])->name('event.destroy');
-        Route::post('/event/{id_event}/daftar', [EventController::class, 'daftar'])->name('event.daftar');
-    });
-
+    Route::get('/event/create', [EventController::class, 'create'])->name('event.create');
+    Route::post('/event', [EventController::class, 'store'])->name('event.store'); 
+    Route::get('/event/{id_event}/edit', [EventController::class, 'edit'])->name('event.edit');
+    Route::put('/event/{id_event}', [EventController::class, 'update'])->name('event.update');
+    Route::delete('/event/{id_event}', [EventController::class, 'destroy'])->name('event.destroy');
+    Route::post('/event/{id_event}/daftar', [EventController::class, 'daftar'])->name('event.daftar');
     Route::get('/event/{id_event}', [EventController::class, 'show'])->name('event.show');
 
-    Route::group(['middleware' => function ($request, $next) {
-        if (auth()->check() && auth()->user()->role !== 'admin') {
-            return redirect()->back()->with('error', 'Anda tidak memiliki hak akses untuk mengonfirmasi event.');
-        }
-        return $next($request);
-    }], function () {
-        Route::post('/event/{id_event}/konfirmasi', [EventController::class, 'konfirmasi'])->name('event.konfirmasi');
-        Route::post('/event/{id_event}/tolak', [EventController::class, 'tolak'])->name('event.tolak');
-    });
-
-}); 
+    // Verifikasi Admin
+    Route::post('/event/{id_event}/konfirmasi', [EventController::class, 'konfirmasi'])->name('event.konfirmasi');
+    Route::post('/event/{id_event}/tolak', [EventController::class, 'tolak'])->name('event.tolak');
+});
 
 require __DIR__.'/auth.php';

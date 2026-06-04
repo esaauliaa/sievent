@@ -70,6 +70,13 @@
             <i class="fa-solid fa-calendar-days w-5 text-sm"></i>
             <span>Event</span>
         </a>
+
+        <!-- Presensi -->
+        <a href="#"
+        class="flex items-center gap-3 px-4 py-3 rounded-2xl font-semibold text-white/90 hover:bg-white/15 transition {{ Request::routeIs('event.presensi.*') ? 'bg-white/15' : '' }}">
+            <i class="fa-solid fa-clipboard-check w-5 text-sm"></i>
+            <span>Presensi & Rekap</span>
+        </a>
     </nav>
 
     <!-- Logout -->

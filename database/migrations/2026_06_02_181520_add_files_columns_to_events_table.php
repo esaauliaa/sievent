@@ -12,10 +12,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('events', function (Blueprint $table) {
-            // Menambahkan kolom poster, proposal, dan alasan_ditolak sekaligus
+            // Menambahkan kolom poster, proposal, dan alasan_penolakan agar sinkron dengan Controller & Model
             $table->string('poster')->nullable()->after('status');
             $table->string('proposal')->nullable()->after('poster');
-            $table->text('alasan_ditolak')->nullable()->after('proposal');
+            $table->text('alasan_penolakan')->nullable()->after('proposal');
         });
     }
 
@@ -25,7 +25,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('events', function (Blueprint $table) {
-            $table->dropColumn(['poster', 'proposal', 'alasan_ditolak']);
+            $table->dropColumn(['poster', 'proposal', 'alasan_penolakan']);
         });
     }
 };

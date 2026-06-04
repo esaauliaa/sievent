@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class Event extends Model
 {
     use HasFactory;
+    
     protected $primaryKey = 'id_event';
 
     protected $fillable = [
@@ -26,8 +27,9 @@ class Event extends Model
         'poster', 
         'proposal'
     ];
-    public function ruangan()
-    {
-        return $this->belongsTo(Ruangan::class, 'id_ruangan', 'id_ruangan');
+
+    public function ruangan() 
+    { 
+        return $this->belongsTo(Ruangan::class, 'id_ruangan', 'id_ruangan'); 
     }
 }

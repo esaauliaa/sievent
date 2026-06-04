@@ -9,14 +9,16 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('events', function (Blueprint $table) {
-            $table->id();
+            // Menggunakan id_event sebagai primary key agar sinkron dengan model dan controller
+            $table->id('id_event');
 
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->foreignId('ruangan_id')->constrained('ruangans')->onDelete('cascade');
+            // Menyesuaikan nama kolom foreign key agar pas dengan relasi database ($request->id_ruangan)
+            $table->unsignedBigInteger('id_user');
+            $table->unsignedBigInteger('id_ruangan');
 
             $table->date('tanggal_pengajuan');
             $table->string('nama_event');
-            $table->text('deskripsi');
+            $table->text('deskripsi')->nullable();
 
             $table->date('tanggal_pelaksanaan');
             $table->time('waktu_mulai');
@@ -24,10 +26,12 @@ return new class extends Migration
 
             $table->integer('kuota');
 
+            // Menggunakan properti nullable() yang aman dari eror field doesn't have a default value
             $table->string('poster')->nullable();
             $table->string('proposal')->nullable();
 
-            $table->enum('status', ['pending', 'approve', 'reject'])->default('pending');
+            // Menyesuaikan string status dengan logika perizinan pada aplikasi
+            $table->string('status')->default('pending'); // pending, disetujui, ditolak
 
             $table->text('alasan_penolakan')->nullable();
 

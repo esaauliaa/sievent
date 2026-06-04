@@ -4,150 +4,218 @@ namespace App\Http\Controllers;
 
 use App\Models\Event;
 use App\Models\Ruangan;
+use App\Models\Peserta;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Carbon\Carbon;
 
 class EventController extends Controller
 {
+    /**
+     * Fungsi Dashboard Khusus Mahasiswa
+     * (Panggil fungsi ini di route dashboard mahasiswa kamu)
+     */
+    public function dashboardMahasiswa()
+    {
+        // 1. Ambil data event kampus yang sudah AKTIF/DISETUJUI oleh admin saja
+        $eventsAktif = Event::with('ruangan')
+            ->where('is_delete', false)
+            ->where('status', 'disetujui')
+            ->latest()
+            ->take(4) // Membatasi maksimal 4 item agar grid pada blade rapi
+            ->get();
+
+        // 2. Hitung total counter event yang tersedia saat ini
+        $totalEventTersedia = Event::where('is_delete', false)
+            ->where('status', 'disetujui')
+            ->count();
+
+        // 3. Inisialisasi variabel pelindung fitur ticketing (set default agar tidak undefined)
+        $eventsDiikutiCount = 0; 
+        $myEvents = collect();   
+
+        // Kembalikan ke view dashboard mahasiswa dengan membawa data dinamis
+        return view('mahasiswa.dashboard', compact(
+            'eventsAktif', 
+            'totalEventTersedia', 
+            'eventsDiikutiCount', 
+            'myEvents'
+        ));
+    }
+
     public function index()
     {
-        $events = Event::with('ruangan')->where('is_delete', false)->latest()->get();
+        $user = Auth::user();
+        // Mengamankan ID dynamic jika primary key pada database menggunakan id_user atau id
+        $userId = $user->id_user ?? $user->id;
+
+        if ($user->role === 'mahasiswa') {
+            $events = Event::with('ruangan')
+                ->where('is_delete', false)
+                ->where('status', 'disetujui')
+                ->latest()
+                ->get();
+        } elseif ($user->role === 'penyelenggara') {
+            $events = Event::with('ruangan')
+                ->where('is_delete', false)
+                ->where('id_user', $userId) 
+                ->latest()
+                ->get();
+        } else {
+            $events = Event::with('ruangan')->where('is_delete', false)->latest()->get();
+        }
 
         return view('event.index', compact('events'));
     }
 
     public function create()
     {
+        $user = Auth::user();
+        $userId = $user->id_user ?? $user->id;
+
+        // Hanya mengambil data event milik penyelenggara yang sedang login saat ini
+        $events = Event::with('ruangan')
+            ->where('is_delete', false)
+            ->where('id_user', $userId)
+            ->latest()
+            ->get();
+
+        return view('event.create', compact('events'));
+    }
+
+    public function store(Request $request)
+    {
+        $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
+            'nama_event'          => 'required|string|max:255',
+            'tanggal_pelaksanaan' => 'required|date',
+            'id_ruangan'          => 'required',
+            'waktu_mulai'         => 'required',
+            'waktu_selesai'       => 'required',
+            'kuota'               => 'required|numeric|min:1',
+            'deskripsi'           => 'nullable|string',
+            'poster'              => 'required|image|mimes:jpeg,png,jpg,webp|max:5120',
+            'proposal'            => 'required|mimes:pdf|max:20480',
+        ], [
+            'nama_event.required'          => 'Nama event wajib diisi, tidak boleh kosong!',
+            'tanggal_pelaksanaan.required' => 'Tanggal pelaksanaan tidak boleh kosong! Anda wajib memilih tanggal dulu.',
+            'id_ruangan.required'          => 'Silakan pilih ruangan yang tersedia pada tanggal tersebut!',
+            'waktu_mulai.required'         => 'Waktu mulai acara wajib diisi!',
+            'waktu_selesai.required'       => 'Waktu selesai acara wajib diisi!',
+            'kuota.required'               => 'Jumlah peserta wajib ditentukan, tidak boleh kosong!',
+            'kuota.numeric'                => 'Jumlah peserta harus diisi menggunakan angka!',
+            'poster.required'              => 'Anda wajib mengunggah poster kegiatan!',
+            'poster.image'                 => 'Berkas poster harus berupa gambar (JPG, PNG, WEBP)!',
+            'proposal.required'            => 'Anda wajib mengunggah berkas proposal PDF perizinan!',
+            'proposal.mimes'               => 'Berkas proposal pendukung harus berformat PDF!',
+        ]);
+
+        if ($validator->fails()) {
+            return redirect()->route('event.create')
+                ->withErrors($validator)
+                ->withInput();
+        }
+
+        $ruangan = Ruangan::where('id_ruangan', $request->id_ruangan)->firstOrFail();
+        if ($request->kuota > $ruangan->kapasitas) {
+            return redirect()->route('event.create')
+                ->withInput()
+                ->with('error', "Gagal Mengajukan! Jumlah peserta ({$request->kuota} orang) melebihi kapasitas maksimal yang ditampung oleh {$ruangan->nama_ruangan} (Maks: {$ruangan->kapasitas} orang).");
+        }
+
+        $isBentrok = Event::where('id_ruangan', $request->id_ruangan)
+            ->where('is_delete', false)
+            ->where('status', 'disetujui')
+            ->where('tanggal_pelaksanaan', $request->tanggal_pelaksanaan)
+            ->where(function ($query) use ($request) {
+                $query->where(function ($q) use ($request) {
+                    $q->where('waktu_mulai', '<=', $request->waktu_mulai)
+                      ->where('waktu_selesai', '>', $request->waktu_mulai);
+                })->orWhere(function ($q) use ($request) {
+                    $q->where('waktu_mulai', '<', $request->waktu_selesai)
+                      ->where('waktu_selesai', '>=', $request->waktu_selesai);
+                })->orWhere(function ($q) use ($request) {
+                    $q->where('waktu_mulai', '>=', $request->waktu_mulai)
+                      ->where('waktu_selesai', '<=', $request->waktu_selesai);
+                });
+            })->exists();
+
+        if ($isBentrok) {
+            return redirect()->route('event.create')
+                ->withInput()
+                ->with('error', "Maaf, ruangan {$ruangan->nama_ruangan} sudah dipesan/disetujui oleh kegiatan lain pada rentang waktu tersebut. Silakan pilih jam atau ruangan lainnya!");
+        }
+
+        $data = $request->except(['poster', 'proposal']);
+        if ($request->hasFile('poster')) {
+            $data['poster'] = $request->file('poster')->store('posters', 'public');
+        }
+        if ($request->hasFile('proposal')) {
+            $data['proposal'] = $request->file('proposal')->store('proposals', 'public');
+        }
+
+        $user = Auth::user();
+        $data['status'] = 'pending';
+        $data['is_delete'] = false;
+        $data['id_user'] = $user->id_user ?? $user->id; 
+        $data['tanggal_pengajuan'] = date('Y-m-d');
+
+        Event::create($data);
+
+        return redirect()->route('event.index')->with('success', 'Event berhasil diajukan! Menunggu konfirmasi admin.');
+    }
+
+    public function show($id_event)
+    {
+        $event = Event::with('ruangan')->where('id_event', $id_event)->firstOrFail();
+        return view('event.show', compact('event'));
+    }
+
+    public function konfirmasi($id_event)
+    {
+        $event = Event::where('id_event', $id_event)->firstOrFail();
+        
+        $event->update([
+            'status' => 'disetujui',
+            'alasan_penolakan' => null
+        ]);
+
+        return redirect()->route('event.show', $id_event)->with('success', 'Berhasil menyetujui pengajuan kegiatan tempat!');
+    }
+
+    public function tolak(Request $request, $id_event)
+    {
+        $request->validate([
+            'alasan_penolakan' => 'required|string'
+        ]);
+
+        $event = Event::where('id_event', $id_event)->firstOrFail();
+        
+        $event->update([
+            'status' => 'ditolak',
+            'alasan_penolakan' => $request->alasan_penolakan
+        ]);
+
+        return redirect()->route('event.show', $id_event)->with('success', 'Pengajuan kegiatan telah berhasil ditolak.');
+    }
+
+    public function getRuanganByTanggal(Request $request)
+    {
         $ruangans = Ruangan::where('is_delete', false)
             ->where('status_ruangan', 'tersedia')
             ->get();
 
-        return view('event.create', compact('ruangans'));
-    }
-
-    public function store(Request $request)
-{
-    $request->validate([
-        'nama_event'          => 'required|string|max:255',
-        'id_ruangan'          => 'required',
-        'tanggal_pelaksanaan' => 'required|date',
-        'waktu_mulai'         => 'required',
-        'waktu_selesai'       => 'required',
-        'kuota'               => 'required|numeric',
-        'deskripsi'           => 'nullable|string',
-        'poster'              => 'nullable|image|mimes:jpeg,png,jpg,webp|max:5120',  // Maksimal 5MB
-        'proposal'            => 'nullable|mimes:pdf|max:20480',                     // Maksimal 20MB
-    ], [
-        'poster.max'      => 'Ukuran file poster terlalu besar! Maksimal kapasitas adalah 5 MB.',
-        'poster.image'    => 'Berkas poster harus berupa gambar.',
-        'proposal.max'    => 'Ukuran file proposal terlalu besar! Maksimal kapasitas adalah 20 MB.',
-        'proposal.mimes'  => 'Berkas proposal pendukung wajib berformat PDF.',
-    ]);
-
-    $data = $request->except(['poster', 'proposal']);
-
-    if ($request->hasFile('poster')) {
-        $data['poster'] = $request->file('poster')->store('posters', 'public');
-    }
-
-    if ($request->hasFile('proposal')) {
-        $data['proposal'] = $request->file('proposal')->store('proposals', 'public');
-    }
-
-    $data['status'] = 'pending';
-    $data['is_delete'] = false;
-    $data['id_user'] = auth()->id(); 
-    $data['tanggal_pengajuan'] = date('Y-m-d');
-
-    \App\Models\Event::create($data);
-
-    return redirect()->route('event.index')->with('success', 'Event berhasil diajukan! Menunggu konfirmasi admin.');
-}
-
-    public function edit($id_event)
-    {
-        $event = Event::findOrFail($id_event);
-        $ruangans = Ruangan::where('is_delete', false)->get();
-        
-        return view('event.edit', compact('event', 'ruangans'));
-    }
-
-    public function update(Request $request, $id_event)
-    {
-        $request->validate([
-            'nama_event' => 'required',
-            'deskripsi' => 'required',
-            'ruangan_id' => 'required',
-            'tanggal_pelaksanaan' => 'required',
-            'waktu_mulai' => 'required',
-            'waktu_selesai' => 'required',
-            'kuota' => 'required',
-        ]);
-
-        $event = Event::findOrFail($id_event);
-        $event->update([
-            'ruangan_id' => $request->ruangan_id,
-            'nama_event' => $request->nama_event,
-            'deskripsi' => $request->deskripsi,
-            'tanggal_pelaksanaan' => $request->tanggal_pelaksanaan,
-            'waktu_mulai' => $request->waktu_mulai,
-            'waktu_selesai' => $request->waktu_selesai,
-            'kuota' => $request->kuota,
-        ]);
-
-        return redirect()->route('event.index')->with('success', 'Data event berhasil diperbarui!');
+        return response()->json($ruangans);
     }
 
     public function destroy($id_event)
     {
-        $event = Event::findOrFail($id_event);
+        $event = Event::where('id_event', $id_event)->firstOrFail();
 
-        $event->update([
-            'is_delete' => true
-        ]);
+        if ($event->status === 'disetujui' && auth()->user()->role === 'penyelenggara') {
+            return redirect()->back()->with('error', 'Aksi ditolak! Event yang telah disetujui tidak boleh dihapus.');
+        }
 
+        $event->update(['is_delete' => true]);
         return redirect()->route('event.index')->with('success', 'Event berhasil dihapus!');
-    }
-
-    public function konfirmasi(Request $request, $id_event)
-    {
-        $event = Event::findOrFail($id_event);
-        $event->update([
-            'status' => $request->status ?? 'disetujui'
-        ]);
-
-        return redirect()->back()->with('success', 'Status pengajuan event berhasil diperbarui!');
-    }
-
-    public function tolak(Request $request, $id_event)
-{
-    // 1. Validasi input alasan wajib diisi
-    $request->validate([
-        'alasan_penolakan' => 'required|string|min:5|max:500'
-    ], [
-        'alasan_penolakan.required' => 'Anda wajib memberikan alasan kenapa pengajuan ini ditolak!',
-        'alasan_penolakan.min'      => 'Alasan penolakan terlalu pendek (minimal 5 karakter).'
-    ]);
-
-    // 2. Cari data event
-    $event = \App\Models\Event::findOrFail($id_event);
-
-    $event->update([
-        'status'         => 'ditolak',
-        'alasan_penolakan' => $request->alasan_penolakan
-    ]);
-
-    return redirect()->back()->with('success', 'Pengajuan event telah ditolak dengan alasan yang dilampirkan.');
-    }
-
-    public function daftar($id_event)
-    {
-        $event = Event::findOrFail($id_event);
-        return redirect()->back()->with('success', 'Anda berhasil mendaftar pada event ini!');
-    }
-    public function show($id_event)
-    {
-    $event = Event::findOrFail($id_event);
-    return view('event.show', compact('event'));
     }
 }
