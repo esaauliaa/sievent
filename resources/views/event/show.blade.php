@@ -34,13 +34,13 @@
         </div>
 
         @if (session('success'))
-            <div class="mb-6 p-4 rounded-2xl bg-green-100 text-green-700 font-bold shadow-sm border border-green-200">
+            <div class="mb-6 p-4 rounded-2xl bg-green-100 text-green-700 font-bold">
                 {{ session('success') }}
             </div>
         @endif
 
         @if (session('error'))
-            <div class="mb-6 p-4 rounded-2xl bg-red-100 text-red-700 font-bold shadow-sm border border-red-200">
+            <div class="mb-6 p-4 rounded-2xl bg-red-100 text-red-700 font-bold">
                 {{ session('error') }}
             </div>
         @endif
@@ -75,7 +75,11 @@
 
                     @if(Auth::user()->role !== 'mahasiswa')
                         <div>
-                            @if($event->status === 'disetujui' || $event->status === 'approved')
+                            @if(\Carbon\Carbon::parse($event->tanggal_pelaksanaan)->isPast() && !\Carbon\Carbon::parse($event->tanggal_pelaksanaan)->isToday())
+                                <span class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-extrabold bg-gray-100 text-gray-500 rounded-full border border-gray-200">
+                                    <span class="w-2 h-2 rounded-full bg-gray-400"></span> Selesai (Arsip)
+                                </span>
+                            @elseif($event->status === 'disetujui' || $event->status === 'approved')
                                 <span class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-extrabold bg-green-100 text-green-700 rounded-full border border-green-200">
                                     <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span> Disetujui (Aktif)
                                 </span>
@@ -154,9 +158,9 @@
                                     <i class="fa-solid fa-users-rectangle fa-fw text-lg"></i>
                                 </div>
                                 <div>
-                                    <p class="text-xs text-gray-400 font-bold uppercase tracking-wider">Kapasitas / Kuota</p>
+                                    <p class="text-xs text-gray-400 font-bold uppercase tracking-wider">Keterisian / Kuota Maksimal</p>
                                     <p class="font-extrabold text-[#131D4F] text-base mt-0.5">
-                                        {{ $event->kuota }} Orang Terdaftar
+                                        {{ $event->peserta->count() }} / {{ $event->kuota }} Orang Mendaftar
                                     </p>
                                 </div>
                             </div>

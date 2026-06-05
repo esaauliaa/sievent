@@ -67,13 +67,13 @@
                         <tr>
                             <th class="px-6 py-4 text-sm font-extrabold">Nama Event</th>
                             <th class="px-6 py-4 text-sm font-extrabold">Tanggal</th>
-                            <th class="px-6 py-4 text-sm font-extrabold">Ruangan</th>
+                            <th class="px-6 py-4 text-sm font-extrabold">Nama Ruangan</th>
                             <th class="px-6 py-4 text-sm font-extrabold">Status</th>
                             <th class="px-6 py-4 text-sm font-extrabold text-center">Aksi</th>
                         </tr>
                     </thead>
 
-                    <tbody class="divide-y divide-blue-50">
+                    <tbody class="divide-y divide-blue-50 text-sm text-gray-700">
                         @forelse($eventTerbaru as $item)
                             <tr class="hover:bg-blue-50/50 transition">
                                 <td class="px-6 py-4 font-semibold text-[#131D4F]">
@@ -82,8 +82,8 @@
                                 <td class="px-6 py-4 text-gray-600">
                                     {{ \Carbon\Carbon::parse($item->tanggal_pelaksanaan)->translatedFormat('d M Y') }}
                                 </td>
-                                <td class="px-6 py-4 text-gray-600">
-                                    ID-{{ $item->id_ruangan }}
+                                <td class="px-6 py-4 font-medium text-gray-600">
+                                    {{ $item->ruangan->nama_ruangan ?? 'Ruangan Tidak Ditemukan' }}
                                 </td>
                                 <td class="px-6 py-4">
                                     @if($item->status === 'disetujui' || $item->status === 'approved')
@@ -101,7 +101,7 @@
                                     @endif
                                 </td>
                                 <td class="px-6 py-4 text-center">
-                                    <a href="{{ route('event.show', $item->id_event ?? $item->id) }}" class="px-4 py-2 rounded-xl bg-[#0056B3] text-white text-sm font-bold hover:bg-[#131D4F] transition shadow-sm inline-block">
+                                    <a href="{{ route('event.show', $item->id_event ?? $item->id) }}" class="px-4 py-2 rounded-xl bg-[#0056B3] text-white text-xs font-bold hover:bg-[#131D4F] transition shadow-sm inline-block">
                                         Detail
                                     </a>
                                 </td>
@@ -148,7 +148,7 @@
 
                             <p class="text-xs text-gray-600 mt-0.5 flex items-center gap-1">
                                 <i class="fa-solid fa-building text-gray-400 text-[10px]"></i>
-                                ID Ruangan: {{ $jadwal->id_ruangan }}
+                                {{ $jadwal->ruangan->nama_ruangan ?? 'Ruangan Tidak Ditemukan' }}
                             </p>
 
                             <p class="text-[10px] text-[#0056B3] font-extrabold mt-1.5 flex items-center gap-1">

@@ -95,7 +95,6 @@
                             <th class="px-6 py-4 text-sm font-extrabold whitespace-nowrap">Nama Ruangan</th>
                             <th class="px-6 py-4 text-sm font-extrabold whitespace-nowrap">Tanggal & Waktu</th>
                             
-                            {{-- Sembunyikan Header Kuota dan Status dari Mahasiswa --}}
                             @if (Auth::user()->role !== 'mahasiswa')
                                 <th class="px-6 py-4 text-sm font-extrabold whitespace-nowrap">Kuota</th>
                                 <th class="px-6 py-4 text-sm font-extrabold whitespace-nowrap">Status</th>
@@ -107,6 +106,10 @@
 
                     <tbody id="eventTableBody" class="divide-y divide-blue-50 text-sm text-gray-700">
                         @forelse($events as $index => $event)
+                            @php
+                                $waktuSelesaiEvent = \Carbon\Carbon::parse($event->tanggal_pelaksanaan . ' ' . $event->waktu_selesai);
+                                $isExpired = \Carbon\Carbon::now()->greaterThan($waktuSelesaiEvent);
+                            @endphp
                             <tr class="hover:bg-slate-50/50 transition-all">
                                 <td class="px-6 py-4 text-center text-gray-400 font-medium">
                                     {{ $index + 1 }}
@@ -123,13 +126,14 @@
                                     <span class="text-xs text-gray-400 mt-0.5 block">{{ substr($event->waktu_mulai, 0, 5) }} - {{ substr($event->waktu_selesai, 0, 5) }} WIB</span>
                                 </td>
 
-                                {{-- Sembunyikan Baris Isi Kuota dan Status dari Mahasiswa --}}
                                 @if (Auth::user()->role !== 'mahasiswa')
                                     <td class="px-6 py-4 font-semibold text-gray-600">
                                         {{ $event->kuota }} orang
                                     </td>
                                     <td class="px-6 py-4">
-                                        @if($event->status === 'disetujui' || $event->status === 'approved')
+                                        @if($isExpired)
+                                            <span class="inline-block px-3 py-1 text-xs font-bold bg-gray-100 text-gray-500 rounded-full">Selesai</span>
+                                        @elseif($event->status === 'disetujui' || $event->status === 'approved')
                                             <span class="inline-block px-3 py-1 text-xs font-bold bg-green-100 text-green-700 rounded-full">Disetujui</span>
                                         @elseif($event->status === 'pending')
                                             <span class="inline-block px-3 py-1 text-xs font-bold bg-amber-100 text-amber-700 rounded-full">Pending</span>
@@ -156,15 +160,24 @@
                                                 </form>
                                             @endif
                                         @elseif (Auth::user()->role === 'mahasiswa')
-                                            <a href="{{ route('event.show', $event->id_event ?? $event->id) }}" class="px-3 py-1.5 bg-[#0056B3] text-white text-xs font-bold rounded-xl hover:bg-[#131D4F] transition shadow-sm flex items-center gap-1">
-                                                <i class="fa-solid fa-ticket"></i> Daftar Event
-                                            </a>
+                                            @if($isExpired)
+                                                <button type="button" class="px-3 py-1.5 bg-gray-300 text-gray-500 text-xs font-bold rounded-xl cursor-not-allowed flex items-center gap-1 shadow-sm" disabled>
+                                                    <i class="fa-solid fa-ban"></i> Event Selesai
+                                                </button>
+                                            @else
+                                                <form action="{{ route('event.daftar', $event->id_event ?? $event->id) }}" method="POST" class="inline" onsubmit="return confirm('Apakah Anda yakin ingin mendaftar ke dalam kegiatan event ini?')">
+                                                    @csrf
+                                                    <button type="submit" class="px-3 py-1.5 bg-[#0056B3] text-white text-xs font-bold rounded-xl hover:bg-[#131D4F] transition shadow-sm flex items-center gap-1">
+                                                        <i class="fa-solid fa-ticket"></i> Daftar Event
+                                                    </button>
+                                                </form>
+                                            @endif
                                         @else
                                             <a href="{{ route('event.edit', $event->id_event ?? $event->id) }}" class="px-3 py-1.5 bg-amber-500 text-white text-xs font-bold rounded-xl hover:bg-amber-600 transition shadow-sm">
                                                 Edit
                                             </a>
                                             
-                                            @if(Auth::user()->role === 'penyelenggara' && ($event->status === 'disetujui' || $event->status === 'approved'))
+                                            @if($event->status === 'disetujui' || $event->status === 'approved')
                                                 <button type="button" class="px-3 py-1.5 bg-gray-100 text-gray-400 border border-gray-200 rounded-xl font-bold text-xs cursor-not-allowed" disabled>
                                                     Hapus
                                                 </button>
@@ -184,7 +197,7 @@
                         @empty
                             <tr>
                                 <td colspan="{{ Auth::user()->role === 'mahasiswa' ? 5 : 7 }}" class="px-6 py-10 text-center text-gray-400 italic font-medium">
-                                    Belum ada data pengajuan event saat ini.
+                                    Belum ada data event yang tersedia saat ini.
                                 </td>
                             </tr>
                         @endforelse
@@ -219,9 +232,8 @@
                 if (userRole === 'mahasiswa' || statusValue === "") {
                     matchesStatus = true;
                 } else {
-                    // Jika bukan mahasiswa, kolom status berada pada index ke-5
                     const status = row.cells[5].textContent.trim().toLowerCase();
-                    if (statusValue === "disetujui" && (status === "disetujui" || status === "approved")) {
+                    if (statusValue === "disetujui" && (status === "disetujui" || status === "approved" || status === "selesai")) {
                         matchesStatus = true;
                     } else if (statusValue === "pending" && status === "pending") {
                         matchesStatus = true;

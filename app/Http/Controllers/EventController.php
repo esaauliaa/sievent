@@ -11,30 +11,28 @@ use Carbon\Carbon;
 
 class EventController extends Controller
 {
-    /**
-     * Fungsi Dashboard Khusus Mahasiswa
-     * (Panggil fungsi ini di route dashboard mahasiswa kamu)
-     */
     public function dashboardMahasiswa()
     {
-        // 1. Ambil data event kampus yang sudah AKTIF/DISETUJUI oleh admin saja
+        $user = Auth::user();
+        $userId = $user->id_user ?? $user->id;
         $eventsAktif = Event::with('ruangan')
             ->where('is_delete', false)
             ->where('status', 'disetujui')
             ->latest()
-            ->take(4) // Membatasi maksimal 4 item agar grid pada blade rapi
+            ->take(4)
             ->get();
 
-        // 2. Hitung total counter event yang tersedia saat ini
         $totalEventTersedia = Event::where('is_delete', false)
             ->where('status', 'disetujui')
             ->count();
 
-        // 3. Inisialisasi variabel pelindung fitur ticketing (set default agar tidak undefined)
-        $eventsDiikutiCount = 0; 
-        $myEvents = collect();   
+        $eventsDiikutiCount = \DB::table('peserta_events')->where('id_user', $userId)->count();
+        $myEventIds = \DB::table('peserta_events')->where('id_user', $userId)->pluck('id_event');
+        $myEvents = Event::with('ruangan')
+            ->whereIn('id_event', $myEventIds)
+            ->where('is_delete', false)
+            ->get();
 
-        // Kembalikan ke view dashboard mahasiswa dengan membawa data dinamis
         return view('mahasiswa.dashboard', compact(
             'eventsAktif', 
             'totalEventTersedia', 
@@ -46,7 +44,6 @@ class EventController extends Controller
     public function index()
     {
         $user = Auth::user();
-        // Mengamankan ID dynamic jika primary key pada database menggunakan id_user atau id
         $userId = $user->id_user ?? $user->id;
 
         if ($user->role === 'mahasiswa') {
@@ -73,7 +70,6 @@ class EventController extends Controller
         $user = Auth::user();
         $userId = $user->id_user ?? $user->id;
 
-        // Hanya mengambil data event milik penyelenggara yang sedang login saat ini
         $events = Event::with('ruangan')
             ->where('is_delete', false)
             ->where('id_user', $userId)
@@ -217,5 +213,44 @@ class EventController extends Controller
 
         $event->update(['is_delete' => true]);
         return redirect()->route('event.index')->with('success', 'Event berhasil dihapus!');
+    }
+
+    public function daftar($id_event)
+    {
+        $user = Auth::user();
+        $userId = $user->id_user ?? $user->id;
+        $event = Event::with(['ruangan', 'peserta'])->where('id_event', $id_event)->firstOrFail();
+
+        if ($event->status !== 'disetujui' && $event->status !== 'approved') {
+            return redirect()->back()->with('error', 'Gagal mendaftar! Kegiatan event ini belum aktif atau tidak disetujui.');
+        }
+
+        $sudahDaftar = \DB::table('peserta_events')
+            ->where('id_event', $id_event)
+            ->where('id_user', $userId)
+            ->exists();
+
+        if ($sudahDaftar) {
+            return redirect()->back()->with('error', 'Anda sudah terdaftar sebagai peserta dalam kegiatan event ini!');
+        }
+
+        $jumlahPesertaSaatIni = $event->peserta()->count();
+        if ($jumlahPesertaSaatIni >= $event->kuota) {
+            return redirect()->back()->with('error', 'Maaf, pendaftaran gagal karena kuota batas maksimal peserta telah terpenuhi!');
+        }
+
+        if (\Carbon\Carbon::parse($event->tanggal_pelaksanaan)->isPast() && !\Carbon\Carbon::parse($event->tanggal_pelaksanaan)->isToday()) {
+            return redirect()->back()->with('error', 'Gagal mendaftar! Kegiatan event ini sudah selesai dilaksanakan.');
+        }
+
+        \DB::table('peserta_events')->insert([
+            'id_event' => $id_event,
+            'id_user' => $userId,
+            'tanggal_daftar' => date('Y-m-d'),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        return redirect()->route('mahasiswa.dashboard')->with('success', 'Selamat, Anda berhasil terdaftar ke dalam event ' . $event->nama_event . '!');
     }
 }

@@ -32,4 +32,9 @@ class Event extends Model
     { 
         return $this->belongsTo(Ruangan::class, 'id_ruangan', 'id_ruangan'); 
     }
+
+    public function peserta()
+    {
+        return $this->belongsToMany(User::class, 'peserta_events', 'id_event', 'id_user');
+    }
 }
