@@ -211,6 +211,119 @@ class EventController extends Controller
         return response()->json($ruangans);
     }
 
+    public function edit($id_event)
+    {
+        $event = Event::with('ruangan')
+            ->where('id_event', $id_event)
+            ->where('is_delete', false)
+            ->firstOrFail();
+
+        if ($event->status === 'disetujui' || $event->status === 'approved') {
+            return redirect()->route('event.index')->with('error', 'Event yang sudah disetujui tidak dapat diedit.');
+        }
+
+        $user = Auth::user();
+        if ($user->role === 'penyelenggara' && $event->id_user !== ($user->id_user ?? $user->id)) {
+            abort(403);
+        }
+
+        $ruangans = Ruangan::where('is_delete', false)
+            ->where('status_ruangan', 'tersedia')
+            ->orWhere('status_ruangan', 'tidak tersedia')
+            ->get();
+
+        return view('event.edit', compact('event', 'ruangans'));
+    }
+
+    public function update(Request $request, $id_event)
+    {
+        $event = Event::where('id_event', $id_event)
+            ->where('is_delete', false)
+            ->firstOrFail();
+
+        if ($event->status === 'disetujui' || $event->status === 'approved') {
+            return redirect()->route('event.index')->with('error', 'Event yang sudah disetujui tidak dapat diedit.');
+        }
+
+        $user = Auth::user();
+        if ($user->role === 'penyelenggara' && $event->id_user !== ($user->id_user ?? $user->id)) {
+            abort(403);
+        }
+
+        $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
+            'nama_event'          => 'required|string|max:255',
+            'tanggal_pelaksanaan' => 'required|date',
+            'id_ruangan'          => 'required',
+            'waktu_mulai'         => 'required',
+            'waktu_selesai'       => 'required',
+            'kuota'               => 'required|numeric|min:1',
+            'deskripsi'           => 'nullable|string',
+            'poster'              => 'nullable|image|mimes:jpeg,png,jpg,webp|max:5120',
+            'proposal'            => 'nullable|mimes:pdf|max:20480',
+        ], [
+            'nama_event.required'          => 'Nama event wajib diisi, tidak boleh kosong!',
+            'tanggal_pelaksanaan.required' => 'Tanggal pelaksanaan tidak boleh kosong! Anda wajib memilih tanggal dulu.',
+            'id_ruangan.required'          => 'Silakan pilih ruangan yang tersedia pada tanggal tersebut!',
+            'waktu_mulai.required'         => 'Waktu mulai acara wajib diisi!',
+            'waktu_selesai.required'       => 'Waktu selesai acara wajib diisi!',
+            'kuota.required'               => 'Jumlah peserta wajib ditentukan, tidak boleh kosong!',
+            'kuota.numeric'                => 'Jumlah peserta harus diisi menggunakan angka!',
+            'poster.image'                 => 'Berkas poster harus berupa gambar (JPG, PNG, WEBP)!',
+            'proposal.mimes'               => 'Berkas proposal pendukung harus berformat PDF!',
+        ]);
+
+        if ($validator->fails()) {
+            return redirect()->route('event.edit', $event->id_event)
+                ->withErrors($validator)
+                ->withInput();
+        }
+
+        $ruangan = Ruangan::where('id_ruangan', $request->id_ruangan)->firstOrFail();
+        if ($request->kuota > $ruangan->kapasitas) {
+            return redirect()->route('event.edit', $event->id_event)
+                ->withInput()
+                ->with('error', "Gagal memperbarui event! Jumlah peserta ({$request->kuota} orang) melebihi kapasitas maksimal yang ditampung oleh {$ruangan->nama_ruangan} (Maks: {$ruangan->kapasitas} orang).");
+        }
+
+        $isBentrok = Event::where('id_ruangan', $request->id_ruangan)
+            ->where('is_delete', false)
+            ->where('status', 'disetujui')
+            ->where('tanggal_pelaksanaan', $request->tanggal_pelaksanaan)
+            ->where('id_event', '!=', $event->id_event)
+            ->where(function ($query) use ($request) {
+                $query->where(function ($q) use ($request) {
+                    $q->where('waktu_mulai', '<=', $request->waktu_mulai)
+                      ->where('waktu_selesai', '>', $request->waktu_mulai);
+                })->orWhere(function ($q) use ($request) {
+                    $q->where('waktu_mulai', '<', $request->waktu_selesai)
+                      ->where('waktu_selesai', '>=', $request->waktu_selesai);
+                })->orWhere(function ($q) use ($request) {
+                    $q->where('waktu_mulai', '>=', $request->waktu_mulai)
+                      ->where('waktu_selesai', '<=', $request->waktu_selesai);
+                });
+            })->exists();
+
+        if ($isBentrok) {
+            return redirect()->route('event.edit', $event->id_event)
+                ->withInput()
+                ->with('error', "Maaf, ruangan {$ruangan->nama_ruangan} sudah dipesan/disetujui oleh kegiatan lain pada rentang waktu tersebut. Silakan pilih jam atau ruangan lainnya!");
+        }
+
+        $data = $request->except(['poster', 'proposal', '_method', '_token']);
+
+        if ($request->hasFile('poster')) {
+            $data['poster'] = $request->file('poster')->store('posters', 'public');
+        }
+
+        if ($request->hasFile('proposal')) {
+            $data['proposal'] = $request->file('proposal')->store('proposals', 'public');
+        }
+
+        $event->update($data);
+
+        return redirect()->route('event.index')->with('success', 'Event berhasil diperbarui!');
+    }
+
     public function destroy($id_event)
     {
         $event = Event::where('id_event', $id_event)->firstOrFail();

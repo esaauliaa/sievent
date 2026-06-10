@@ -182,31 +182,37 @@
                                                 </form>
                                             @endif
                                         @else
-                                            <a href="{{ route('event.edit', $event->id_event ?? $event->id) }}" class="px-3 py-1.5 bg-amber-500 text-white text-xs font-bold rounded-xl hover:bg-amber-600 transition shadow-sm">
-                                                Edit
-                                            </a>
+                                                @if($event->status === 'disetujui' || $event->status === 'approved')
+                                                    <button type="button" class="px-3 py-1.5 bg-gray-300 text-gray-500 text-xs font-bold rounded-xl cursor-not-allowed" disabled>
+                                                        Edit
+                                                    </button>
+                                                @else
+                                                    <a href="{{ route('event.edit', $event->id_event ?? $event->id) }}" class="px-3 py-1.5 bg-amber-500 text-white text-xs font-bold rounded-xl hover:bg-amber-600 transition shadow-sm">
+                                                        Edit
+                                                    </a>
+                                                @endif
 
-                                            @if($event->status === 'disetujui' || $event->status === 'approved')
-                                                <a href="{{ route('presensi.show', $event->id_event ?? $event->id) }}"
-                                                   class="px-3 py-1.5 bg-green-600 text-white text-xs font-bold rounded-xl hover:bg-green-700 transition shadow-sm flex items-center gap-1">
-                                                    <i class="fa-solid fa-clipboard-check"></i> Presensi
-                                                </a>
-                                            @endif
-                                            
-                                            @if($event->status === 'disetujui' || $event->status === 'approved')
-                                                <button type="button" class="px-3 py-1.5 bg-gray-100 text-gray-400 border border-gray-200 rounded-xl font-bold text-xs cursor-not-allowed" disabled>
-                                                    Hapus
-                                                </button>
-                                            @else
-                                                <form action="{{ route('event.destroy', $event->id_event ?? $event->id) }}" method="POST" class="inline" onsubmit="return confirm('Apakah Anda yakin ingin menghapus event ini?')">
-                                                    @csrf
-                                                    @method('DELETE')
-                                                    <button type="submit" class="px-3 py-1.5 bg-red-600 text-white text-xs font-bold rounded-xl hover:bg-red-700 transition shadow-sm">
+                                                @if($event->status === 'disetujui' || $event->status === 'approved')
+                                                    <a href="{{ route('presensi.show', $event->id_event ?? $event->id) }}"
+                                                       class="px-3 py-1.5 bg-green-600 text-white text-xs font-bold rounded-xl hover:bg-green-700 transition shadow-sm flex items-center gap-1">
+                                                        <i class="fa-solid fa-clipboard-check"></i> Presensi
+                                                    </a>
+                                                @endif
+                                                
+                                                @if($event->status === 'disetujui' || $event->status === 'approved')
+                                                    <button type="button" class="px-3 py-1.5 bg-gray-100 text-gray-400 border border-gray-200 rounded-xl font-bold text-xs cursor-not-allowed" disabled>
                                                         Hapus
                                                     </button>
-                                                </form>
+                                                @else
+                                                    <form action="{{ route('event.destroy', $event->id_event ?? $event->id) }}" method="POST" class="inline" onsubmit="return confirm('Apakah Anda yakin ingin menghapus event ini?')">
+                                                        @csrf
+                                                        @method('DELETE')
+                                                        <button type="submit" class="px-3 py-1.5 bg-red-600 text-white text-xs font-bold rounded-xl hover:bg-red-700 transition shadow-sm">
+                                                            Hapus
+                                                        </button>
+                                                    </form>
+                                                @endif
                                             @endif
-                                        @endif
                                     </div>
                                 </td>
                             </tr>
