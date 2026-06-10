@@ -162,8 +162,54 @@ class EventController extends Controller
 
     public function show($id_event)
     {
-        $event = Event::with('ruangan')->where('id_event', $id_event)->firstOrFail();
+        $event = Event::with(['ruangan', 'peserta'])->where('id_event', $id_event)->firstOrFail();
         return view('event.show', compact('event'));
+    }
+
+    public function edit($id)
+    {
+        $event = Event::where('id_event', $id)->where('is_delete', false)->firstOrFail();
+        $ruangans = Ruangan::where('is_delete', false)->get();
+
+        return view('event.edit', compact('event', 'ruangans'));
+    }
+
+    public function update(Request $request, $id_event)
+    {
+        $request->validate([
+            'nama_event'          => 'required|string|max:255',
+            'tanggal_pelaksanaan' => 'required|date',
+            'id_ruangan'          => 'required',
+            'waktu_mulai'         => 'required',
+            'waktu_selesai'       => 'required',
+            'kuota'               => 'required|numeric|min:1',
+            'deskripsi'           => 'nullable|string',
+            'poster'              => 'nullable|image|mimes:jpeg,png,jpg,webp|max:5120',
+            'proposal'            => 'nullable|mimes:pdf|max:20480',
+        ]);
+
+        $event = Event::where('id_event', $id_event)->firstOrFail();
+        $ruangan = Ruangan::where('id_ruangan', $request->id_ruangan)->firstOrFail();
+
+        if ($request->kuota > $ruangan->kapasitas) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', "Gagal Menyimpan! Jumlah peserta ({$request->kuota} orang) melebihi kapasitas {$ruangan->nama_ruangan} (Maks: {$ruangan->kapasitas} orang).");
+        }
+
+        $data = $request->except(['poster', 'proposal']);
+
+        if ($request->hasFile('poster')) {
+            $data['poster'] = $request->file('poster')->store('posters', 'public');
+        }
+
+        if ($request->hasFile('proposal')) {
+            $data['proposal'] = $request->file('proposal')->store('proposals', 'public');
+        }
+
+        $event->update($data);
+
+        return redirect()->route('event.index')->with('success', 'Data event berhasil diperbarui!');
     }
 
     public function konfirmasi($id_event)
@@ -239,7 +285,8 @@ class EventController extends Controller
             return redirect()->back()->with('error', 'Maaf, pendaftaran gagal karena kuota batas maksimal peserta telah terpenuhi!');
         }
 
-        if (\Carbon\Carbon::parse($event->tanggal_pelaksanaan)->isPast() && !\Carbon\Carbon::parse($event->tanggal_pelaksanaan)->isToday()) {
+        $waktuSelesaiEvent = Carbon::parse($event->tanggal_pelaksanaan . ' ' . $event->waktu_selesai);
+        if (Carbon::now()->greaterThan($waktuSelesaiEvent)) {
             return redirect()->back()->with('error', 'Gagal mendaftar! Kegiatan event ini sudah selesai dilaksanakan.');
         }
 

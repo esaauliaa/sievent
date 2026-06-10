@@ -107,8 +107,9 @@
                     <tbody id="eventTableBody" class="divide-y divide-blue-50 text-sm text-gray-700">
                         @forelse($events as $index => $event)
                             @php
-                                $waktuSelesaiEvent = \Carbon\Carbon::parse($event->tanggal_pelaksanaan . ' ' . $event->waktu_selesai);
-                                $isExpired = \Carbon\Carbon::now()->greaterThan($waktuSelesaiEvent);
+                                $waktuSelesaiEvent = \Carbon\Carbon::parse($event->tanggal_pelaksanaan . ' ' . $event->waktu_selesai, 'Asia/Jakarta');
+                                $waktuSekarang = \Carbon\Carbon::now('Asia/Jakarta');
+                                $isExpired = $waktuSekarang->greaterThan($waktuSelesaiEvent);
                             @endphp
                             <tr class="hover:bg-slate-50/50 transition-all">
                                 <td class="px-6 py-4 text-center text-gray-400 font-medium">
@@ -162,7 +163,7 @@
                                         @elseif (Auth::user()->role === 'mahasiswa')
                                             @if($isExpired)
                                                 <button type="button" class="px-3 py-1.5 bg-gray-300 text-gray-500 text-xs font-bold rounded-xl cursor-not-allowed flex items-center gap-1 shadow-sm" disabled>
-                                                    <i class="fa-solid fa-ban"></i> Event Selesai
+                                                    <i class="fa-solid fa-ban"></i> Daftar Event
                                                 </button>
                                             @else
                                                 <form action="{{ route('event.daftar', $event->id_event ?? $event->id) }}" method="POST" class="inline" onsubmit="return confirm('Apakah Anda yakin ingin mendaftar ke dalam kegiatan event ini?')">
@@ -173,15 +174,19 @@
                                                 </form>
                                             @endif
                                         @else
-                                            <a href="{{ route('event.edit', $event->id_event ?? $event->id) }}" class="px-3 py-1.5 bg-amber-500 text-white text-xs font-bold rounded-xl hover:bg-amber-600 transition shadow-sm">
-                                                Edit
-                                            </a>
-                                            
                                             @if($event->status === 'disetujui' || $event->status === 'approved')
+                                                <button type="button" class="px-3 py-1.5 bg-gray-100 text-gray-400 border border-gray-200 rounded-xl font-bold text-xs cursor-not-allowed" disabled>
+                                                    <i class="fa-solid fa-lock text-[10px] mr-0.5"></i> Terkunci
+                                                </button>
+                                                
                                                 <button type="button" class="px-3 py-1.5 bg-gray-100 text-gray-400 border border-gray-200 rounded-xl font-bold text-xs cursor-not-allowed" disabled>
                                                     Hapus
                                                 </button>
                                             @else
+                                                <a href="{{ route('event.edit', $event->id_event ?? $event->id) }}" class="px-3 py-1.5 bg-amber-500 text-white text-xs font-bold rounded-xl hover:bg-amber-600 transition shadow-sm">
+                                                    Edit
+                                                </a>
+                                                
                                                 <form action="{{ route('event.destroy', $event->id_event ?? $event->id) }}" method="POST" class="inline" onsubmit="return confirm('Apakah Anda yakin ingin menghapus event ini?')">
                                                     @csrf
                                                     @method('DELETE')
