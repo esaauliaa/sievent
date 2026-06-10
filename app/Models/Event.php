@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Carbon\Carbon;
 
 class Event extends Model
 {
@@ -43,5 +44,14 @@ class Event extends Model
     public function pesertaEvents()
     {
         return $this->hasMany(Peserta::class, 'id_event', 'id_event');
+    }
+
+    public function getIsExpiredAttribute()
+    {
+        $endTime = trim($this->waktu_selesai ?: $this->waktu_mulai ?: '23:59:59');
+        $timezone = 'Asia/Jakarta';
+        $endDateTime = Carbon::parse($this->tanggal_pelaksanaan . ' ' . $endTime, $timezone);
+
+        return Carbon::now($timezone)->greaterThanOrEqualTo($endDateTime);
     }
 }

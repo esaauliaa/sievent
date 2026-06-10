@@ -36,6 +36,12 @@ class ProfileController extends Controller
             Storage::disk('public')->put($fileName, base64_decode($imageData));
 
             $data['foto'] = $fileName;
+        } elseif ($request->hasFile('foto')) {
+            if ($user->foto && Storage::disk('public')->exists($user->foto)) {
+                Storage::disk('public')->delete($user->foto);
+            }
+
+            $data['foto'] = $request->file('foto')->store('foto-user', 'public');
         }
 
         // Mengosongkan NIM jika user bukan mahasiswa

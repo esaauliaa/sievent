@@ -52,17 +52,25 @@ class EventController extends Controller
                 ->where('status', 'disetujui')
                 ->latest()
                 ->get();
+
+            $myEventIds = \DB::table('peserta_events')
+                ->where('id_user', $userId)
+                ->pluck('id_event')
+                ->toArray();
         } elseif ($user->role === 'penyelenggara') {
             $events = Event::with('ruangan')
                 ->where('is_delete', false)
                 ->where('id_user', $userId) 
                 ->latest()
                 ->get();
+
+            $myEventIds = [];
         } else {
             $events = Event::with('ruangan')->where('is_delete', false)->latest()->get();
+            $myEventIds = [];
         }
 
-        return view('event.index', compact('events'));
+        return view('event.index', compact('events', 'myEventIds'));
     }
 
     public function create()

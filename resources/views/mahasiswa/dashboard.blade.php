@@ -81,7 +81,10 @@
 
             <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
                 @forelse($eventsAktif as $item)
-                    <div class="rounded-3xl border border-blue-100 overflow-hidden hover:shadow-lg transition flex flex-col justify-between bg-[#f8fbff]">
+                    @php
+                        $isExpiredCard = $item->is_expired;
+                    @endphp
+                    <div class="rounded-3xl border border-blue-100 overflow-hidden hover:shadow-lg transition flex flex-col justify-between {{ $isExpiredCard ? 'bg-gray-50 text-gray-500' : 'bg-[#f8fbff]' }}">
                         <div>
                             <div class="h-36 bg-gradient-to-r from-[#0056B3] to-[#131D4F] flex items-center justify-center text-white relative">
                                 @if($item->poster)
@@ -92,27 +95,27 @@
                             </div>
 
                             <div class="p-5">
-                                <span class="px-3 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700">
-                                    Dibuka
+                                <span class="px-3 py-1 rounded-full text-xs font-bold {{ $isExpiredCard ? 'bg-gray-100 text-gray-500' : 'bg-green-100 text-green-700' }}">
+                                    {{ $isExpiredCard ? 'Ditutup' : 'Dibuka' }}
                                 </span>
 
-                                <h4 class="text-lg font-extrabold text-[#131D4F] mt-3 line-clamp-2">
+                                <h4 class="text-lg font-extrabold {{ $isExpiredCard ? 'text-gray-700' : 'text-[#131D4F]' }} mt-3 line-clamp-2">
                                     {{ $item->nama_event }}
                                 </h4>
 
-                                <p class="text-sm text-gray-500 mt-2 flex items-center gap-1">
-                                    <i class="fa-solid fa-location-dot text-gray-400"></i>
+                                <p class="text-sm {{ $isExpiredCard ? 'text-gray-500' : 'text-gray-500' }} mt-2 flex items-center gap-1">
+                                    <i class="fa-solid fa-location-dot {{ $isExpiredCard ? 'text-gray-400' : 'text-gray-400' }}"></i>
                                     {{ $item->ruangan->nama_ruangan ?? 'Ruangan Tidak Ditemukan' }}
                                 </p>
 
-                                <p class="text-sm text-[#0056B3] font-bold mt-3">
+                                <p class="text-sm font-bold mt-3 {{ $isExpiredCard ? 'text-gray-500' : 'text-[#0056B3]' }}">
                                     {{ \Carbon\Carbon::parse($item->tanggal_pelaksanaan)->translatedFormat('d F Y') }} • {{ substr($item->waktu_mulai, 0, 5) }} WIB
                                 </p>
                             </div>
                         </div>
 
                         <div class="px-5 pb-5">
-                            <a href="{{ route('event.show', $item->id_event) }}" class="block text-center w-full py-3 rounded-2xl bg-[#0056B3] text-white font-bold hover:bg-[#131D4F] transition">
+                            <a href="{{ route('event.show', $item->id_event) }}" class="block text-center w-full py-3 rounded-2xl {{ $isExpiredCard ? 'bg-gray-300 text-gray-700 cursor-not-allowed' : 'bg-[#0056B3] text-white hover:bg-[#131D4F]' }} font-bold transition">
                                 Detail Event
                             </a>
                         </div>

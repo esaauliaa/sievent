@@ -1,5 +1,8 @@
 @php
     $user = Auth::user();
+    $photoPath = $user->foto && \Illuminate\Support\Facades\Storage::disk('public')->exists($user->foto)
+        ? $user->foto
+        : null;
 
     $roleLabel = match ($user->role) {
         'admin' => 'Administrator',
@@ -44,9 +47,9 @@
 
         <!-- Foto Profil User -->
         <div class="w-11 h-11 rounded-full bg-[#e1effe] border-2 border-[#0056B3] overflow-hidden flex items-center justify-center text-[#0056B3]">
-            @if ($user->foto)
+            @if ($photoPath)
                 <img
-                    src="{{ asset('storage/' . $user->foto) }}"
+                    src="{{ asset('storage/' . $photoPath) }}"
                     alt="Foto Profil {{ $user->nama }}"
                     class="w-full h-full object-cover"
                 >

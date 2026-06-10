@@ -15,10 +15,16 @@
                 <div class="relative z-10 flex flex-col md:flex-row md:items-center gap-6">
                     <!-- Preview Foto Profil -->
                     <div class="w-24 h-24 rounded-3xl bg-white/20 border border-white/30 flex items-center justify-center overflow-hidden">
-                        @if (Auth::user()->foto)
+                        @php
+                            $profilePhoto = Auth::user()->foto && \Illuminate\Support\Facades\Storage::disk('public')->exists(Auth::user()->foto)
+                                ? Auth::user()->foto
+                                : null;
+                        @endphp
+
+                        @if ($profilePhoto)
                             <img
                                 id="profileCardFoto"
-                                src="{{ asset('storage/' . Auth::user()->foto) }}"
+                                src="{{ asset('storage/' . $profilePhoto) }}"
                                 alt="Foto Profil"
                                 class="w-full h-full object-cover"
                             >

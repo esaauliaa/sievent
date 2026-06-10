@@ -107,30 +107,30 @@
                     <tbody id="eventTableBody" class="divide-y divide-blue-50 text-sm text-gray-700">
                         @forelse($events as $index => $event)
                             @php
-                                $waktuSelesaiEvent = \Carbon\Carbon::parse($event->tanggal_pelaksanaan . ' ' . $event->waktu_selesai);
-                                $isExpired = \Carbon\Carbon::now()->greaterThan($waktuSelesaiEvent);
+                                $isExpired = $event->is_expired;
+                                $alreadyRegistered = in_array($event->id_event ?? $event->id, $myEventIds ?? []);
                             @endphp
-                            <tr class="hover:bg-slate-50/50 transition-all">
+                            <tr class="transition-all {{ $isExpired ? 'bg-gray-50 opacity-90' : 'hover:bg-slate-50/50' }}">
                                 <td class="px-6 py-4 text-center text-gray-400 font-medium">
                                     {{ $index + 1 }}
                                 </td>
-                                <td class="px-6 py-4">
-                                    <span class="font-bold text-[#131D4F] block">{{ $event->nama_event }}</span>
-                                    <span class="text-xs text-gray-400 line-clamp-1 mt-0.5">{{ $event->deskripsi }}</span>
+                                <td class="px-6 py-4 {{ $isExpired ? 'text-gray-500' : '' }}">
+                                    <span class="font-bold {{ $isExpired ? 'text-gray-500' : 'text-[#131D4F]' }} block">{{ $event->nama_event }}</span>
+                                    <span class="text-xs {{ $isExpired ? 'text-gray-400' : 'text-gray-400' }} line-clamp-1 mt-0.5">{{ $event->deskripsi }}</span>
                                 </td>
-                                <td class="px-6 py-4 font-medium text-gray-600">
+                                <td class="px-6 py-4 font-medium {{ $isExpired ? 'text-gray-500' : 'text-gray-600' }}">
                                     {{ $event->ruangan->nama_ruangan ?? 'Ruangan Tidak Ditemukan' }}
                                 </td>
-                                <td class="px-6 py-4">
-                                    <span class="block font-medium text-gray-800">{{ \Carbon\Carbon::parse($event->tanggal_pelaksanaan)->translatedFormat('d F Y') }}</span>
-                                    <span class="text-xs text-gray-400 mt-0.5 block">{{ substr($event->waktu_mulai, 0, 5) }} - {{ substr($event->waktu_selesai, 0, 5) }} WIB</span>
+                                <td class="px-6 py-4 {{ $isExpired ? 'text-gray-500' : '' }}">
+                                    <span class="block font-medium {{ $isExpired ? 'text-gray-500' : 'text-gray-800' }}">{{ \Carbon\Carbon::parse($event->tanggal_pelaksanaan)->translatedFormat('d F Y') }}</span>
+                                    <span class="text-xs {{ $isExpired ? 'text-gray-500' : 'text-gray-400' }} mt-0.5 block">{{ substr($event->waktu_mulai, 0, 5) }} - {{ substr($event->waktu_selesai, 0, 5) }} WIB</span>
                                 </td>
 
                                 @if (Auth::user()->role !== 'mahasiswa')
-                                    <td class="px-6 py-4 font-semibold text-gray-600">
+                                    <td class="px-6 py-4 font-semibold {{ $isExpired ? 'text-gray-500' : 'text-gray-600' }}">
                                         {{ $event->kuota }} orang
                                     </td>
-                                    <td class="px-6 py-4">
+                                    <td class="px-6 py-4 {{ $isExpired ? 'text-gray-500' : '' }}">
                                         @if($isExpired)
                                             <span class="inline-block px-3 py-1 text-xs font-bold bg-gray-100 text-gray-500 rounded-full">Selesai</span>
                                         @elseif($event->status === 'disetujui' || $event->status === 'approved')
@@ -143,10 +143,10 @@
                                     </td>
                                 @endif
                                 
-                                <td class="px-6 py-4">
+                                <td class="px-6 py-4 {{ $isExpired ? 'text-gray-500' : '' }}">
                                     <div class="flex items-center justify-center gap-2">
                                         <a href="{{ route('event.show', $event->id_event ?? $event->id) }}" 
-                                           class="px-3 py-1.5 rounded-xl bg-gray-100 text-[#131D4F] text-xs font-bold hover:bg-gray-200 transition shadow-sm flex items-center gap-1">
+                                           class="px-3 py-1.5 rounded-xl bg-gray-100 text-xs font-bold {{ $isExpired ? 'text-gray-500 hover:bg-gray-100' : 'text-[#131D4F] hover:bg-gray-200' }} transition shadow-sm flex items-center gap-1">
                                             <i class="fa-solid fa-eye"></i> Detail
                                         </a>
 
@@ -165,9 +165,13 @@
                                                 </a>
                                             @endif
                                         @elseif (Auth::user()->role === 'mahasiswa')
-                                            @if($isExpired)
+                                            @if ($isExpired)
                                                 <button type="button" class="px-3 py-1.5 bg-gray-300 text-gray-500 text-xs font-bold rounded-xl cursor-not-allowed flex items-center gap-1 shadow-sm" disabled>
                                                     <i class="fa-solid fa-ban"></i> Event Selesai
+                                                </button>
+                                            @elseif ($alreadyRegistered)
+                                                <button type="button" class="px-3 py-1.5 bg-gray-300 text-gray-500 text-xs font-bold rounded-xl cursor-not-allowed flex items-center gap-1 shadow-sm" disabled>
+                                                    <i class="fa-solid fa-check"></i> Sudah Terdaftar
                                                 </button>
                                             @else
                                                 <form action="{{ route('event.daftar', $event->id_event ?? $event->id) }}" method="POST" class="inline" onsubmit="return confirm('Apakah Anda yakin ingin mendaftar ke dalam kegiatan event ini?')">
