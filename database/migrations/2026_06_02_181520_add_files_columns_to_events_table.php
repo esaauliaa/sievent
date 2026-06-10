@@ -12,10 +12,15 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('events', function (Blueprint $table) {
-            // Menambahkan kolom poster, proposal, dan alasan_penolakan agar sinkron dengan Controller & Model
-            $table->string('poster')->nullable()->after('status');
-            $table->string('proposal')->nullable()->after('poster');
-            $table->text('alasan_penolakan')->nullable()->after('proposal');
+            if (!Schema::hasColumn('events', 'poster')) {
+                $table->string('poster')->nullable()->after('status');
+            }
+            if (!Schema::hasColumn('events', 'proposal')) {
+                $table->string('proposal')->nullable()->after('poster');
+            }
+            if (!Schema::hasColumn('events', 'alasan_penolakan')) {
+                $table->text('alasan_penolakan')->nullable()->after('proposal');
+            }
         });
     }
 
@@ -25,7 +30,21 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('events', function (Blueprint $table) {
-            $table->dropColumn(['poster', 'proposal', 'alasan_penolakan']);
+            $columns = [];
+            
+            if (Schema::hasColumn('events', 'poster')) {
+                $columns[] = 'poster';
+            }
+            if (Schema::hasColumn('events', 'proposal')) {
+                $columns[] = 'proposal';
+            }
+            if (Schema::hasColumn('events', 'alasan_penolakan')) {
+                $columns[] = 'alasan_penolakan';
+            }
+
+            if (!empty($columns)) {
+                $table->dropColumn($columns);
+            }
         });
     }
 };
